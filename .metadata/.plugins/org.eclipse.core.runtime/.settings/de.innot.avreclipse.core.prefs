@@ -1,0 +1,15 @@
+avrdudepropertypage/previewexpanded=false
+avrdudepropertypage/weight_preview_collapsed=50
+avrdudepropertypage/weight_preview_expanded=20
+avrdudepropertypage/weight_top_collapsed=950
+avrdudepropertypage/weight_top_expanded=80
+avrpaths//systempath/AVRDUDE=
+avrpaths//systempath/AVRGCC=
+avrpaths//systempath/AVRINCLUDE=
+avrpaths//systempath/MAKE=
+avrpaths//systempath/PDFPATH=
+avrpaths/AVRDUDE=C\:\\WinAVR-20100110\\bin
+avrpaths/AVRGCC=C\:\\WinAVR-20100110\\bin
+avrpaths/AVRINCLUDE=C\:\\WinAVR-20100110\\avr\\include
+avrpaths/MAKE=C\:\\WinAVR-20100110\\utils\\bin
+eclipse.preferences.version=1

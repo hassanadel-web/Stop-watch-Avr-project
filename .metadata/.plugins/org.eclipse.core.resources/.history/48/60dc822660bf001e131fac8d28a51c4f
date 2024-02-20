@@ -1,0 +1,160 @@
+/*
+ * mini_project.c
+ *
+ *  Created on: Jan 30, 2024
+ *      Author: hassan
+ */
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+
+unsigned char g_timer1_int_flag =0; /* flag to be set to 1 if timer1 CTC matches the compare value */
+unsigned char g_secs=0;      /* variable that represents the seconds in stop watch*/
+unsigned char g_mins=0;     /* variable that represents the minutes in stop watch*/
+unsigned char g_hours=0;   /* variable that represents the hours in stop watch*/
+
+ISR(TIMER1_COMPA_vect)
+{
+    g_timer1_int_flag=1;   /* flag is set to 1 when timer1 finished counting up to 1 second */
+}
+
+
+
+void Timer1_Init(void)
+{
+    TCNT1=0;    /* Timer1 initial value=0 */
+
+    TCCR1A|=(1<<FOC1A); /* Use compare non-pwm comp mode on channel A*/
+
+    /*
+     *   WGM12 to select ctc mode on channel A
+     *   CS10 CS12 to select clock source with Fcpu/1024(prescaler)
+     */
+
+    TCCR1B|=(1<<WGM12)|(1<<CS10)|(1<<CS12);
+
+
+    OCR1A=976;  /*Compare match value to count up to 1 second */
+
+
+    TIMSK|=(1<<OCIE1A); /* enable Timer1A compare mode interrupt */
+
+}
+
+/* function to control the 6 seven segment */
+void Display_Digits(void)
+{
+	/*
+	 *  sSArray[0]=g_secs%10 to display the units in g_secs
+	 *  sSArray[1]=g_secs/10 to display the tens in g_secs
+	 *  sSArray[2]=g_mins%10 to display the units in g_mins
+	 *  sSArray[3]=g_mins/10 to display the tens in g_mins
+	 *  sSArray[4]=g_hours%10 to display the units in g_hours
+	 *  sSArray[5]=g_hours/10 to display the tens in g_hours
+	 */
+	unsigned char i;
+	unsigned char sSArray[6]={g_secs%10,g_secs/10,g_mins%10,g_mins/10,\
+	g_hours%10,g_hours/10};
+
+	/*
+	 * this loop controls the 6 seven-segment compunets
+	 */
+	for(i=0;i<6;i++)
+	{
+		PORTA=(1<<i);
+		PORTC=(PORTC&0xF0)|(sSArray[i]&0x0F);
+		_delay_ms(2);
+
+	}
+}
+
+
+
+void Int0_Init(void)
+{
+	DDRD&=~(1<<PD2);
+	PORTD|=(1<<PD2);
+	MCUCR|=(1<<ISC01);
+	GICR|=(1<<INT0);
+}
+ISR(INT0_vect)
+{
+  g_secs=0;
+  g_mins=0;
+  g_hours=0;
+  PORTC&=0xF0;
+  _delay_ms(30);
+}
+
+
+void INT1_Init(void)
+{
+	DDRD&=~(1<<PD3);
+	MCUCR|=(1<<ISC10)|(1<<ISC11);
+	GICR|=(1<<INT1);
+}
+
+ISR(INT1_vect)
+{
+	TCNT1=0;
+	TCCR1B&=~(1<<CS10)&~(1<<CS11)&~(1<<CS12);
+
+}
+
+void INT2_Init(void)
+{
+	DDRB&=~(1<<PB2);
+	PORTB|=(1<<PB2);
+	MCUCSR&=~(1<<ISC2);
+	GICR|=(1<<INT2);
+}
+
+ISR(INT2_vect)
+{
+	if( !( TCCR1B&(1<<CS10) )&&!(TCCR1B&(1<<CS12)) )
+	{
+		Timer1_Init();
+	}
+
+
+}
+int main(void)
+{
+    DDRA=0x3f;
+    DDRC=0x0f;
+    SREG|=(1<<7);
+    Timer1_Init();
+    Int0_Init();
+    INT1_Init();
+    INT2_Init();
+    while(1)
+    {
+      Display_Digits();
+      if(g_timer1_int_flag==1)
+      {
+    	  if(g_secs==59)
+    	  {
+    		  g_secs=0;
+    		  g_mins++;
+    	  }
+    	  else
+    	  {
+    		  g_secs++;
+    	  }
+
+    	  if(g_mins>59)
+    	  {
+    		  g_mins=0;
+    		  g_hours++;
+    	  }
+
+    	  if(g_hours>23)
+    	  {
+    		  g_hours=0;
+    	  }
+    	  g_timer1_int_flag=0;
+      }
+    }
+
+}

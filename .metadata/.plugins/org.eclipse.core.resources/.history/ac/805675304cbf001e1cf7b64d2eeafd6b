@@ -1,0 +1,118 @@
+/*
+ * mini_project.c
+ *
+ *  Created on: Jan 30, 2024
+ *      Author: hassan
+ */
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+
+unsigned char g_timer1_flag =0;
+unsigned char g_secs=0;
+unsigned char g_mins=0;
+unsigned char g_hours=0;
+
+ISR(TIMER1_COMPA_vect)
+{
+    g_timer1_flag=1;
+}
+
+
+
+void Timer1_Init(void)
+{
+    TCNT1=0;
+    TCCR1A|=(1<<FOC1A);
+    TCCR1B|=(1<<WGM12)|(1<<CS10)|(1<<CS12);
+    OCR1A=976;
+    TIMSK|=(1<<OCIE1A);
+
+}
+
+
+void Display_Digits(void)
+{
+	unsigned char i;
+	unsigned char sSArray[6]={g_secs%10,g_secs/10,g_mins%10,g_mins/10,\
+	g_hours%10,g_hours/10};
+
+	for(i=0;i<6;i++)
+	{
+		PORTA=(1<<i);
+		PORTC=(PORTC&0xF0)|(sSArray[i]&0x0F);
+		_delay_ms(2);
+
+	}
+}
+
+
+
+void Int0_Init(void)
+{
+	DDRD&=~(1<<PD2);
+	PORTD|=(1<<PD2);
+	MCUCR|=(1<<ISC01);
+	GICR|=(1<<INT0);
+}
+ISR(INT0_vect)
+{
+  g_secs=0;
+  g_mins=0;
+  g_hours=0;
+}
+
+
+void INT1_Init(void)
+{
+	DDRD&=~(1<<PD3);
+	MCUCR|=(1<<ISC10)|(1<<ISC11);
+	GICR|=(1<<INT1);
+}
+
+ISR(INT1_vect)
+{
+	TCNT1=0;
+	TCCR1A=0;
+	TCCR1B=0;
+}
+
+int main(void)
+{
+    DDRA=0x3f;
+    DDRC=0x0f;
+    PORTC=1;
+    SREG|=(1<<7);
+    Timer1_Init();
+    Int0_Init();
+    while(1)
+    {
+      Display_Digits();
+      if(g_timer1_flag==1)
+      {
+    	  if(g_secs==59)
+    	  {
+    		  g_secs=0;
+    		  g_mins++;
+    	  }
+    	  else
+    	  {
+    		  g_secs++;
+    	  }
+
+    	  if(g_mins>59)
+    	  {
+    		  g_mins=0;
+    		  g_hours++;
+    	  }
+
+    	  if(g_hours>23)
+    	  {
+    		  g_hours=0;
+    	  }
+    	  g_timer1_flag=0;
+      }
+    }
+
+}
